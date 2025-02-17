@@ -41,10 +41,14 @@ if ! railway list 2>/dev/null | grep -q "${PROJECT_NAME}"; then
     railway init
 fi
 
-# 4. Deploy to Railway
+# 4. Upload environment variables
+echo -e "\n${GREEN}Uploading environment variables...${NC}"
+./scripts/setup_railway_vars.sh
+
+# 5. Deploy to Railway
 echo -e "\n${GREEN}Deploying to Railway...${NC}"
 railway up
 
-# 5. Show deployment status
+# 6. Show deployment status
 echo -e "\n${GREEN}Deployment complete! Opening project dashboard...${NC}"
 railway open
