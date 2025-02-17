@@ -17,5 +17,8 @@ COPY . .
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
-# Run the bot
-CMD ["python", "-m", "src.cli.main"]
+# Expose the port
+EXPOSE 8000
+
+# Run the web server
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "src.web.app:app"]
