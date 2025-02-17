@@ -23,6 +23,14 @@ if ! railway whoami &> /dev/null; then
     railway login
 fi
 
+# Link to existing project instead of creating new one
+echo -e "${YELLOW}Linking to existing Railway project...${NC}"
+railway link
+
+# Deploy to create a service if none exists
+echo -e "${YELLOW}Deploying to Railway to create service...${NC}"
+railway up
+
 # Read .env file and set variables one by one
 while IFS='=' read -r key value || [ -n "$key" ]; do
     # Skip comments and empty lines
@@ -38,10 +46,10 @@ while IFS='=' read -r key value || [ -n "$key" ]; do
 
     echo -e "${GREEN}Processing ${key}...${NC}"
 
-    # Set each variable individually
-    railway vars set "$key=$value"
+    # Set each variable individually using the correct syntax
+    railway run "$key=$value"
 
 done < .env
 
 echo -e "\n${GREEN}Environment variables have been set in Railway!${NC}"
-echo -e "You can verify them by running: railway vars"
+echo -e "You can verify them by running: railway variables"
