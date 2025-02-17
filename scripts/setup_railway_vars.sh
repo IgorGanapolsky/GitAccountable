@@ -23,10 +23,7 @@ if ! railway whoami &> /dev/null; then
     railway login
 fi
 
-# Initialize command
-cmd="railway variables set"
-
-# Read .env file and set variables
+# Read .env file and set variables one by one
 while IFS='=' read -r key value || [ -n "$key" ]; do
     # Skip comments and empty lines
     [[ $key =~ ^#.*$ ]] && continue
@@ -39,18 +36,12 @@ while IFS='=' read -r key value || [ -n "$key" ]; do
     # Skip if key or value is empty
     [ -z "$key" ] || [ -z "$value" ] && continue
 
-    # Escape special characters in value
-    value=$(printf '%q' "$value")
-
-    # Add to our command
-    cmd="$cmd --set \"$key=$value\""
-
     echo -e "${GREEN}Processing ${key}...${NC}"
+
+    # Set each variable individually
+    railway vars set "$key=$value"
+
 done < .env
 
-# Set all variables at once
-echo -e "${GREEN}Uploading variables to Railway...${NC}"
-eval "$cmd"
-
 echo -e "\n${GREEN}Environment variables have been set in Railway!${NC}"
-echo -e "You can verify them by running: railway variables"
+echo -e "You can verify them by running: railway vars"
