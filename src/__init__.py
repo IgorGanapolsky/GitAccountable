@@ -1,0 +1,1 @@
+"""AI Accountability Bot - A task and repository management system.""" 

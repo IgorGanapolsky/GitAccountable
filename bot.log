@@ -1,0 +1,7 @@
+2025-02-17 01:46:04,578 - src.main - INFO - 🔔 Tasks due in the next 24 hours:
+2025-02-17 01:46:04,579 - src.main - INFO - 📅 Test Task - Due: 2025-02-18 - Priority: High
+2025-02-17 01:46:04,580 - src.main - WARNING - ⚠️ High priority task due soon: Test Task
+2025-02-17 01:46:04,581 - src.main - INFO - Task reminder scheduler started
+2025-02-17 01:47:04,586 - src.main - INFO - Task reminder scheduler stopped
+2025-02-17 01:49:05,507 - __main__ - INFO - Task reminder scheduler started
+2025-02-17 01:50:05,508 - __main__ - INFO - Task reminder scheduler stopped

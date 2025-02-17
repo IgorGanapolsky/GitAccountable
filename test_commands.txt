@@ -1,0 +1,6 @@
+task add Build Authentication | Implement OAuth2 authentication system | 2025-02-25 | High
+task list
+task list Todo
+task update recHtC9WhB9aA2jfp In Progress
+task due 7
+exit

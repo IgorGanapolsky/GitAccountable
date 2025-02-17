@@ -1,0 +1,8 @@
+Add task: Review pull requests by Friday
+show my tasks
+mark task 'Review pull requests' as in progress
+show my tasks
+what is due this week
+delete task 'Review pull requests'
+show my tasks
+exit
