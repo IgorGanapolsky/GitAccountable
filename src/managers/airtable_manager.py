@@ -8,7 +8,8 @@ class AirtableManager:
         load_dotenv()
         self.api_key = os.getenv('AIRTABLE_API_KEY')
         self.base_id = os.getenv('AIRTABLE_BASE_ID')
-        self.table_name = os.getenv('AIRTABLE_TABLE_NAME')
+        # Try AIRTABLE_REPOS_TABLE first, fall back to AIRTABLE_TABLE_NAME for backward compatibility
+        self.table_name = os.getenv('AIRTABLE_REPOS_TABLE') or os.getenv('AIRTABLE_TABLE_NAME', 'GitHub Repositories')
         
         if not all([self.api_key, self.base_id, self.table_name]):
             raise ValueError("Missing required Airtable credentials in .env file")
@@ -22,8 +23,8 @@ class AirtableManager:
             fields = {
                 "Repository Name": name,
                 "Description": description,
-                "Created Date": datetime.now().strftime("%Y/%m/%d"),
-                "Last Updated": datetime.now().strftime("%Y/%m/%d")
+                "Created At": datetime.now().isoformat(),
+                "Last Updated": datetime.now().isoformat()
             }
             
             record = self.table.create(fields)
@@ -41,6 +42,7 @@ class AirtableManager:
     def update_repository(self, record_id, fields):
         """Update an existing repository"""
         try:
+            fields["Last Updated"] = datetime.now().isoformat()
             return self.table.update(record_id, fields)
         except Exception as e:
             raise Exception(f"Error updating repository: {str(e)}")
