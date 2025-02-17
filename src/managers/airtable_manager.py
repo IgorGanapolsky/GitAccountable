@@ -88,6 +88,15 @@ class AirtableManager:
         except Exception as e:
             raise Exception(f"Error searching repositories: {str(e)}")
 
+    def is_healthy(self) -> bool:
+        """Check if Airtable connection is healthy"""
+        try:
+            # Try to fetch one record to verify connection
+            self.table.first()
+            return True
+        except Exception as e:
+            return False
+
 # Example usage:
 if __name__ == "__main__":
     try:

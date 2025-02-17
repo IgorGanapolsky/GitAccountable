@@ -171,6 +171,13 @@ class ChatService:
         except Exception as e:
             return f"Error communicating with ChatGPT: {str(e)}"
 
+    def is_healthy(self) -> bool:
+        """Check if OpenAI API connection is healthy"""
+        try:
+            return bool(self.client.api_key)  # Check if API key is set
+        except Exception as e:
+            return False
+
 def main():
     load_dotenv()
     api_key = os.getenv('OPENAI_API_KEY')
