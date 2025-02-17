@@ -55,4 +55,6 @@ firebase-adminsdk.json
 Thumbs.db
 .AppleDouble
 .LSOverride
-._*
+._*railway_vars.json
+.env
+railway_vars.json
