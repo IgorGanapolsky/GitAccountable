@@ -17,11 +17,12 @@ sdist/
 var/
 wheels/
 *.egg-info/
+.installed.cfg
+*.egg
 
-# Environment
-.env
-.venv
+# Virtual Environment
 venv/
+env/
 ENV/
 
 # IDE
@@ -30,6 +31,28 @@ ENV/
 *.swp
 *.swo
 
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+bot.log
+
+# Heroku
+.heroku/
+*.pyc
+staticfiles/
+
+# Firebase
+firebase-debug.log*
+firebase-debug.*.log*
+firebase-adminsdk.json
+
 # OS
 .DS_Store
-Thumbs.db 
+Thumbs.db
+.AppleDouble
+.LSOverride
+._*
