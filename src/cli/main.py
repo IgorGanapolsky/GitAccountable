@@ -20,12 +20,23 @@ def mask_api_key(api_key: str) -> str:
 def main() -> int:
     """Main entry point for the CLI application"""
     try:
-        # Get the directory containing the script
-        script_dir = Path(__file__).parent.parent.parent.absolute()
-        env_path = script_dir / '.env'
-
-        # Load environment variables from .env file
-        load_dotenv(env_path)
+        # Try multiple locations for .env file
+        possible_env_paths = [
+            Path.cwd() / '.env',  # Current working directory
+            Path(__file__).parent.parent.parent / '.env',  # Project root
+            Path.home() / '.env'  # Home directory
+        ]
+        
+        # Try loading from each possible location
+        env_loaded = False
+        for env_path in possible_env_paths:
+            if env_path.exists():
+                load_dotenv(env_path)
+                env_loaded = True
+                break
+        
+        if not env_loaded:
+            print("Warning: No .env file found in any of the expected locations")
 
         # Initialize ChatService
         api_key = os.getenv('OPENAI_API_KEY')
