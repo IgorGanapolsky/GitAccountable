@@ -22,12 +22,13 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY')  # Required for sessions
 
-# Configure session security
+# Configure session security based on environment
+is_production = os.getenv('FLASK_ENV') == 'production'
 app.config.update(
-    SESSION_COOKIE_SECURE=True,  # Only send cookies over HTTPS
+    SESSION_COOKIE_SECURE=is_production,  # Only force HTTPS in production
     SESSION_COOKIE_HTTPONLY=True,  # Prevent JavaScript access to session cookie
     SESSION_COOKIE_SAMESITE='Lax',  # CSRF protection
-    PREFERRED_URL_SCHEME='https'  # Use HTTPS for url_for
+    PREFERRED_URL_SCHEME='https' if is_production else 'http'
 )
 
 app.register_blueprint(auth_bp, url_prefix='/auth')

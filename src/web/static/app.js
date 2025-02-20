@@ -14,9 +14,15 @@ async function checkAuthStatus() {
         const response = await fetch('/auth/status');
         const data = await response.json();
         
-        document.getElementById('not-authenticated').classList.toggle('hidden', data.authenticated);
-        document.getElementById('authenticated').classList.toggle('hidden', !data.authenticated);
-        document.getElementById('command-interface').classList.toggle('hidden', !data.authenticated);
+        if (document.getElementById('not-authenticated')) {
+            document.getElementById('not-authenticated').classList.toggle('hidden', data.authenticated);
+        }
+        if (document.getElementById('authenticated')) {
+            document.getElementById('authenticated').classList.toggle('hidden', !data.authenticated);
+        }
+        if (document.getElementById('command-interface')) {
+            document.getElementById('command-interface').classList.toggle('hidden', !data.authenticated);
+        }
         
     } catch (error) {
         console.error('Error checking auth status:', error);
@@ -25,22 +31,21 @@ async function checkAuthStatus() {
 
 // Logout function
 function logout() {
-    window.location.href = '/logout';
+    window.location.href = '/auth/logout';
 }
 
 // Send command to the bot
 async function sendCommand() {
     const commandInput = document.getElementById('command');
     const responseArea = document.getElementById('response');
-    const command = commandInput.value.trim();
+    const command = commandInput?.value.trim();
 
     if (!command) return;
 
-    // Show loading state
-    responseArea.classList.add('loading');
-    responseArea.textContent = 'Processing...';
-
     try {
+        responseArea.textContent = 'Processing...';
+        responseArea.className = 'bg-gray-50 rounded-md p-4 min-h-[100px] whitespace-pre-wrap';
+        
         const response = await fetch('/command', {
             method: 'POST',
             headers: {
@@ -53,41 +58,37 @@ async function sendCommand() {
         
         // If not authenticated, redirect to login
         if (response.status === 401) {
-            window.location.href = data.login_url;
+            window.location.href = data.login_url || '/auth/login';
             return;
         }
         
-        // Update response area with animation
-        responseArea.classList.remove('loading');
-        responseArea.classList.remove('status-success', 'status-error');
-        responseArea.classList.add(data.status === 'success' ? 'status-success' : 'status-error');
-        
-        // Format the response
-        if (data.status === 'success') {
-            responseArea.textContent = typeof data.result === 'string' ? data.result : JSON.stringify(data.result, null, 2);
-        } else {
-            responseArea.textContent = `Error: ${data.message}`;
-        }
+        // Update response area
+        responseArea.textContent = data.status === 'success' 
+            ? (typeof data.result === 'string' ? data.result : JSON.stringify(data.result, null, 2))
+            : `Error: ${data.message || 'Unknown error'}`;
+            
+        // Add status class
+        responseArea.classList.add(data.status === 'success' ? 'text-green-600' : 'text-red-600');
 
         // Clear input on success
-        if (data.status === 'success') {
+        if (data.status === 'success' && commandInput) {
             commandInput.value = '';
         }
 
     } catch (error) {
-        responseArea.classList.remove('loading');
-        responseArea.classList.add('status-error');
-        responseArea.textContent = `Error: Could not connect to the server. Please try again.`;
+        console.error('Error sending command:', error);
+        if (responseArea) {
+            responseArea.textContent = 'Error: Could not connect to the server. Please try again.';
+            responseArea.classList.add('text-red-600');
+        }
     }
-
-    // Add fade-in animation
-    responseArea.classList.add('fade-in');
-    setTimeout(() => responseArea.classList.remove('fade-in'), 300);
 }
 
 // Handle quick command buttons
 function useQuickCommand(command) {
     const commandInput = document.getElementById('command');
-    commandInput.value = command;
-    sendCommand();
+    if (commandInput) {
+        commandInput.value = command;
+        sendCommand();
+    }
 }
