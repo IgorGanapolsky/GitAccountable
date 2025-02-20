@@ -26,9 +26,10 @@ logger = logging.getLogger(__name__)
 class AIAccountabilityBot:
     """Core bot class handling task management and reminders"""
     
-    def __init__(self):
+    def __init__(self, task_manager: TaskManager = None, chat_service = None):
         """Initialize the bot with task manager and command patterns"""
-        self.task_manager = TaskManager()
+        self.task_manager = task_manager or TaskManager()
+        self.chat_service = chat_service
         self.scheduler_thread = None
         self.running = False
         self.command_parser = CommandParser()
