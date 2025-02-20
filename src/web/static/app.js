@@ -1,9 +1,32 @@
+// Check authentication status on page load
+document.addEventListener('DOMContentLoaded', checkAuthStatus);
+
 // Handle enter key in command input
-document.getElementById('command').addEventListener('keypress', function(e) {
+document.getElementById('command')?.addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
         sendCommand();
     }
 });
+
+// Check if user is authenticated
+async function checkAuthStatus() {
+    try {
+        const response = await fetch('/auth/status');
+        const data = await response.json();
+        
+        document.getElementById('not-authenticated').classList.toggle('hidden', data.authenticated);
+        document.getElementById('authenticated').classList.toggle('hidden', !data.authenticated);
+        document.getElementById('command-interface').classList.toggle('hidden', !data.authenticated);
+        
+    } catch (error) {
+        console.error('Error checking auth status:', error);
+    }
+}
+
+// Logout function
+function logout() {
+    window.location.href = '/logout';
+}
 
 // Send command to the bot
 async function sendCommand() {
@@ -27,6 +50,12 @@ async function sendCommand() {
         });
 
         const data = await response.json();
+        
+        // If not authenticated, redirect to login
+        if (response.status === 401) {
+            window.location.href = data.login_url;
+            return;
+        }
         
         // Update response area with animation
         responseArea.classList.remove('loading');
