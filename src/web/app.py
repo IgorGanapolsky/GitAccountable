@@ -19,11 +19,31 @@ logger = logging.getLogger(__name__)
 # Load environment variables
 load_dotenv()
 
+# Required environment variables
+REQUIRED_ENV_VARS = [
+    'GITHUB_CLIENT_ID',
+    'GITHUB_CLIENT_SECRET',
+    'GITHUB_REDIRECT_URI',
+    'FLASK_SECRET_KEY',
+    'OPENAI_API_KEY'
+]
+
+# Check for required environment variables
+missing_vars = [var for var in REQUIRED_ENV_VARS if not os.getenv(var)]
+if missing_vars:
+    raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
+
 app = Flask(__name__)
-app.secret_key = os.getenv('FLASK_SECRET_KEY')  # Required for sessions
+
+# Set Flask secret key
+app.secret_key = os.getenv('FLASK_SECRET_KEY')
+if not app.secret_key:
+    raise ValueError("FLASK_SECRET_KEY must be set")
 
 # Configure session security based on environment
-is_production = os.getenv('FLASK_ENV') == 'production'
+is_production = os.getenv('FLASK_ENV', 'development') == 'production'
+logger.info(f"Running in {'production' if is_production else 'development'} mode")
+
 app.config.update(
     SESSION_COOKIE_SECURE=is_production,  # Only force HTTPS in production
     SESSION_COOKIE_HTTPONLY=True,  # Prevent JavaScript access to session cookie
@@ -31,21 +51,17 @@ app.config.update(
     PREFERRED_URL_SCHEME='https' if is_production else 'http'
 )
 
+# Register blueprints
 app.register_blueprint(auth_bp, url_prefix='/auth')
 
 try:
     # Initialize services
     logger.info("Initializing services...")
     
-    # Get API keys
-    openai_api_key = os.getenv('OPENAI_API_KEY')
-    if not openai_api_key:
-        raise ValueError("OPENAI_API_KEY not found in environment variables")
-    
     # Initialize services
     airtable_manager = AirtableManager()
     task_manager = TaskManager(airtable_manager)
-    chat_service = ChatService(api_key=openai_api_key)
+    chat_service = ChatService(api_key=os.getenv('OPENAI_API_KEY'))
     bot = AIAccountabilityBot(task_manager, chat_service)
     logger.info("Services initialized successfully")
 except Exception as e:

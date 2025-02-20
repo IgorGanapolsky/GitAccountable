@@ -31,6 +31,7 @@ def get_github_oauth():
         redirect_uri = url_for('auth.github_callback', _external=True)
         logger.info(f"Using constructed redirect URI: {redirect_uri}")
     
+    logger.info(f"Initializing GitHub OAuth with redirect URI: {redirect_uri}")
     return OAuth2Session(
         GITHUB_CLIENT_ID,
         redirect_uri=redirect_uri,
@@ -42,6 +43,7 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'github_token' not in session:
+            logger.warning("Unauthenticated access attempt")
             return jsonify({
                 'status': 'error',
                 'message': 'Authentication required',
@@ -71,13 +73,15 @@ def github_callback():
     """Handle GitHub OAuth callback"""
     try:
         if 'error' in request.args:
-            logger.error(f"GitHub OAuth error: {request.args.get('error')}")
+            error_msg = request.args.get('error_description', request.args.get('error'))
+            logger.error(f"GitHub OAuth error: {error_msg}")
             return jsonify({
                 'status': 'error',
-                'message': 'GitHub authentication failed: ' + request.args.get('error_description', 'Unknown error')
+                'message': f'GitHub authentication failed: {error_msg}'
             }), 400
 
         github = get_github_oauth()
+        
         # Get the full URL including scheme and host
         full_url = request.url
         if request.headers.get('X-Forwarded-Proto') == 'https':
@@ -90,7 +94,10 @@ def github_callback():
             client_secret=GITHUB_CLIENT_SECRET,
             authorization_response=full_url
         )
+        
         session['github_token'] = token
+        logger.info("Successfully obtained GitHub token")
+        
         return redirect(url_for('home', _external=True))
     except Exception as e:
         logger.error(f"Error in GitHub callback: {str(e)}")
@@ -103,11 +110,14 @@ def github_callback():
 def logout():
     """Log out user"""
     session.pop('github_token', None)
+    logger.info("User logged out")
     return redirect(url_for('home', _external=True))
 
 @auth_bp.route('/status')
 def auth_status():
     """Check authentication status"""
+    is_authenticated = 'github_token' in session
+    logger.debug(f"Auth status check: {'authenticated' if is_authenticated else 'not authenticated'}")
     return jsonify({
-        'authenticated': 'github_token' in session
+        'authenticated': is_authenticated
     })
