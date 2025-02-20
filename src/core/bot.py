@@ -184,11 +184,28 @@ class AIAccountabilityBot:
     def _handle_due_tasks(self, days: Optional[str] = None) -> str:
         """Handle checking due tasks"""
         try:
-            days_int = int(days) if days else 7
-            tasks = self.task_manager.get_due_tasks(days_int)
+            # Default to 7 days if not specified
+            days_ahead = int(days) if days else 7
+            tasks = self.task_manager.get_due_tasks(days_ahead)
+            
             if not tasks:
-                return f"No tasks due in the next {days_int} days"
-            return f"Tasks due in the next {days_int} days:\n" + self.task_manager.format_task_list(tasks)
+                return f"No tasks due in the next {days_ahead} days"
+            
+            # Format the response
+            response = f"Tasks due in the next {days_ahead} days:\n\n"
+            for task in tasks:
+                fields = task['fields']
+                title = fields.get('Title', 'Untitled')
+                due_date = fields.get('Due Date', 'No due date')
+                priority = fields.get('Priority', 'Medium')
+                status = fields.get('Status', 'Not started')
+                
+                response += f"📅 {title}\n"
+                response += f"   Due: {due_date}\n"
+                response += f"   Priority: {priority}\n"
+                response += f"   Status: {status}\n\n"
+            
+            return response.strip()
         except Exception as e:
             return f"Error checking due tasks: {str(e)}"
 
