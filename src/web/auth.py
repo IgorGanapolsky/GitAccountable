@@ -2,9 +2,15 @@
 Authentication routes for AI Accountability Bot
 """
 import os
-from flask import Blueprint, redirect, session, url_for, jsonify, request
+import logging
+from urllib.parse import urljoin
+from flask import Blueprint, redirect, session, url_for, jsonify, request, current_app
 from requests_oauthlib import OAuth2Session
 from functools import wraps
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # GitHub OAuth settings
 GITHUB_CLIENT_ID = os.getenv('GITHUB_CLIENT_ID')
@@ -16,9 +22,18 @@ auth_bp = Blueprint('auth', __name__)
 
 def get_github_oauth():
     """Get GitHub OAuth session"""
+    if not GITHUB_CLIENT_ID:
+        raise ValueError("GITHUB_CLIENT_ID not found in environment variables")
+    
+    redirect_uri = os.getenv('GITHUB_REDIRECT_URI')
+    if not redirect_uri:
+        # Fallback to constructing the redirect URI
+        redirect_uri = url_for('auth.github_callback', _external=True)
+        logger.info(f"Using constructed redirect URI: {redirect_uri}")
+    
     return OAuth2Session(
         GITHUB_CLIENT_ID,
-        redirect_uri=os.getenv('GITHUB_REDIRECT_URI'),
+        redirect_uri=redirect_uri,
         scope=['repo', 'user']
     )
 
@@ -30,7 +45,7 @@ def login_required(f):
             return jsonify({
                 'status': 'error',
                 'message': 'Authentication required',
-                'login_url': url_for('auth.login')
+                'login_url': url_for('auth.login', _external=True)
             }), 401
         return f(*args, **kwargs)
     return decorated_function
@@ -38,30 +53,59 @@ def login_required(f):
 @auth_bp.route('/login')
 def login():
     """Start GitHub OAuth flow"""
-    github = get_github_oauth()
-    authorization_url, state = github.authorization_url(GITHUB_AUTHORIZE_URL)
-    session['oauth_state'] = state
-    return redirect(authorization_url)
+    try:
+        github = get_github_oauth()
+        authorization_url, state = github.authorization_url(GITHUB_AUTHORIZE_URL)
+        session['oauth_state'] = state
+        logger.info(f"Starting OAuth flow, redirecting to: {authorization_url}")
+        return redirect(authorization_url)
+    except Exception as e:
+        logger.error(f"Error starting OAuth flow: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': 'Failed to start GitHub authentication. Please try again.'
+        }), 500
 
-@auth_bp.route('/auth/github/callback')
+@auth_bp.route('/github/callback')
 def github_callback():
     """Handle GitHub OAuth callback"""
-    github = get_github_oauth()
-    token = github.fetch_token(
-        GITHUB_TOKEN_URL,
-        client_secret=GITHUB_CLIENT_SECRET,
-        authorization_response=request.url
-    )
-    session['github_token'] = token
-    return redirect(url_for('home'))
+    try:
+        if 'error' in request.args:
+            logger.error(f"GitHub OAuth error: {request.args.get('error')}")
+            return jsonify({
+                'status': 'error',
+                'message': 'GitHub authentication failed: ' + request.args.get('error_description', 'Unknown error')
+            }), 400
+
+        github = get_github_oauth()
+        # Get the full URL including scheme and host
+        full_url = request.url
+        if request.headers.get('X-Forwarded-Proto') == 'https':
+            full_url = full_url.replace('http://', 'https://')
+        
+        logger.info(f"Processing OAuth callback with URL: {full_url}")
+        
+        token = github.fetch_token(
+            GITHUB_TOKEN_URL,
+            client_secret=GITHUB_CLIENT_SECRET,
+            authorization_response=full_url
+        )
+        session['github_token'] = token
+        return redirect(url_for('home', _external=True))
+    except Exception as e:
+        logger.error(f"Error in GitHub callback: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': 'Failed to complete GitHub authentication. Please try again.'
+        }), 500
 
 @auth_bp.route('/logout')
 def logout():
     """Log out user"""
     session.pop('github_token', None)
-    return redirect(url_for('home'))
+    return redirect(url_for('home', _external=True))
 
-@auth_bp.route('/auth/status')
+@auth_bp.route('/status')
 def auth_status():
     """Check authentication status"""
     return jsonify({

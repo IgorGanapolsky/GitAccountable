@@ -21,7 +21,16 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY')  # Required for sessions
-app.register_blueprint(auth_bp)
+
+# Configure session security
+app.config.update(
+    SESSION_COOKIE_SECURE=True,  # Only send cookies over HTTPS
+    SESSION_COOKIE_HTTPONLY=True,  # Prevent JavaScript access to session cookie
+    SESSION_COOKIE_SAMESITE='Lax',  # CSRF protection
+    PREFERRED_URL_SCHEME='https'  # Use HTTPS for url_for
+)
+
+app.register_blueprint(auth_bp, url_prefix='/auth')
 
 try:
     # Initialize services
