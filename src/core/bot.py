@@ -41,7 +41,7 @@ class AIAccountabilityBot:
             'list': re.compile(r'^(?:list|show|display)\s+(?:all\s+)?tasks(?:\s+(.+))?$', re.IGNORECASE),
             'update': re.compile(r'^(?:mark|set|update)\s+task\s+["\']?(.+?)["\']?\s+as\s+(.+)$', re.IGNORECASE),
             'delete': re.compile(r'^(?:delete|remove)\s+task\s+["\']?(.+?)["\']?$', re.IGNORECASE),
-            'due': re.compile(r'^(?:show|list|what\s+is)\s+due(?:\s+in\s+(\d+)\s+days?)?$', re.IGNORECASE)
+            'due': re.compile(r'^(?:show\s+)?(?:due\s+tasks?|what\s+is\s+due)(?:\s+in\s+(\d+)\s+days?)?$', re.IGNORECASE)
         }
 
     def check_due_tasks(self) -> None:
