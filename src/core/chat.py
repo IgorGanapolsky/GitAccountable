@@ -15,7 +15,10 @@ from ..utils.date_parser import DateParser
 class ChatService:
     def __init__(self, api_key: str):
         """Initialize the chat service with OpenAI API key"""
-        self.client = OpenAI(api_key=api_key)
+        self.client = OpenAI(
+            api_key=api_key,
+            base_url="https://api.openai.com/v1"
+        )
         
         # Try to initialize managers
         try:
