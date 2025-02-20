@@ -4,11 +4,18 @@ from dotenv import load_dotenv
 import os
 
 class TaskManager:
-    def __init__(self):
-        load_dotenv()
-        self.api_key = os.getenv('AIRTABLE_API_KEY')
-        self.base_id = os.getenv('AIRTABLE_BASE_ID')
-        self.table_name = os.getenv('AIRTABLE_TASKS_TABLE', 'Tasks')
+    def __init__(self, airtable_manager=None):
+        if airtable_manager:
+            # Use the existing airtable manager's credentials
+            self.api_key = airtable_manager.api_key
+            self.base_id = airtable_manager.base_id
+            self.table_name = os.getenv('AIRTABLE_TASKS_TABLE', 'Tasks')
+        else:
+            # Load credentials from environment
+            load_dotenv()
+            self.api_key = os.getenv('AIRTABLE_API_KEY')
+            self.base_id = os.getenv('AIRTABLE_BASE_ID')
+            self.table_name = os.getenv('AIRTABLE_TASKS_TABLE', 'Tasks')
         
         if not all([self.api_key, self.base_id, self.table_name]):
             raise ValueError("Missing required Airtable credentials in .env file")
