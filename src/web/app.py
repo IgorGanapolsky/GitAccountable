@@ -3,7 +3,7 @@ Web server for AI Accountability Bot
 """
 import os
 import logging
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request, send_from_directory
 from src.core.chat import ChatService
 from src.core.bot import AIAccountabilityBot
 from src.managers.task_manager import TaskManager
@@ -42,12 +42,9 @@ except Exception as e:
 def home():
     """Home endpoint"""
     try:
-        return jsonify({
-            "status": "healthy",
-            "message": "AI Accountability Bot is running"
-        })
+        return send_from_directory('static', 'index.html')
     except Exception as e:
-        logger.error(f"Error in home endpoint: {str(e)}")
+        logger.error(f"Error serving index.html: {str(e)}")
         return jsonify({
             "status": "error",
             "message": str(e)
@@ -77,6 +74,33 @@ def health():
                 "chat": False
             }
         }), 500
+
+@app.route('/command', methods=['POST'])
+def command():
+    """Handle bot commands"""
+    try:
+        data = request.get_json()
+        if not data or 'command' not in data:
+            return jsonify({
+                "status": "error",
+                "message": "No command provided"
+            }), 400
+
+        result = bot.process_command(data['command'])
+        return jsonify({
+            "status": "success",
+            "result": result
+        })
+    except Exception as e:
+        logger.error(f"Error processing command: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+@app.route('/<path:filename>')
+def serve_static(filename):
+    return send_from_directory('static', filename)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8000))
