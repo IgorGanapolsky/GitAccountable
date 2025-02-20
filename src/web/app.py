@@ -3,11 +3,13 @@ Web server for AI Accountability Bot
 """
 import os
 import logging
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, session
 from src.core.chat import ChatService
 from src.core.bot import AIAccountabilityBot
 from src.managers.task_manager import TaskManager
 from src.managers.airtable_manager import AirtableManager
+from src.managers.github_manager import GitHubManager
+from src.web.auth import auth_bp, login_required
 from dotenv import load_dotenv
 
 # Configure logging
@@ -18,12 +20,14 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 app = Flask(__name__)
+app.secret_key = os.getenv('FLASK_SECRET_KEY')  # Required for sessions
+app.register_blueprint(auth_bp)
 
 try:
     # Initialize services
     logger.info("Initializing services...")
     
-    # Get OpenAI API key
+    # Get API keys
     openai_api_key = os.getenv('OPENAI_API_KEY')
     if not openai_api_key:
         raise ValueError("OPENAI_API_KEY not found in environment variables")
@@ -56,12 +60,14 @@ def health():
     try:
         airtable_health = airtable_manager.is_healthy()
         chat_health = chat_service.is_healthy()
+        github_health = True  # GitHub health is per-user
         
         return jsonify({
             "status": "healthy" if all([airtable_health, chat_health]) else "unhealthy",
             "services": {
                 "airtable": airtable_health,
-                "chat": chat_health
+                "chat": chat_health,
+                "github": github_health
             }
         })
     except Exception as e:
@@ -71,11 +77,13 @@ def health():
             "message": str(e),
             "services": {
                 "airtable": False,
-                "chat": False
+                "chat": False,
+                "github": False
             }
         }), 500
 
 @app.route('/command', methods=['POST'])
+@login_required
 def command():
     """Handle bot commands"""
     try:
@@ -86,6 +94,11 @@ def command():
                 "message": "No command provided"
             }), 400
 
+        # Initialize GitHub manager if we have a token
+        if 'github_token' in session:
+            github_manager = GitHubManager(session['github_token']['access_token'])
+            bot.github_manager = github_manager
+
         result = bot.process_command(data['command'])
         return jsonify({
             "status": "success",
@@ -93,6 +106,43 @@ def command():
         })
     except Exception as e:
         logger.error(f"Error processing command: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+@app.route('/repos', methods=['GET'])
+@login_required
+def list_repos():
+    """List user's GitHub repositories"""
+    try:
+        github_manager = GitHubManager(session['github_token']['access_token'])
+        repos = github_manager.get_repositories()
+        return jsonify({
+            "status": "success",
+            "repos": repos
+        })
+    except Exception as e:
+        logger.error(f"Error listing repositories: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+@app.route('/repos/<path:repo_name>/activity', methods=['GET'])
+@login_required
+def repo_activity(repo_name):
+    """Get repository activity"""
+    try:
+        days = request.args.get('days', 7, type=int)
+        github_manager = GitHubManager(session['github_token']['access_token'])
+        activity = github_manager.get_repo_activity(repo_name, days)
+        return jsonify({
+            "status": "success",
+            "activity": activity
+        })
+    except Exception as e:
+        logger.error(f"Error getting repository activity: {str(e)}")
         return jsonify({
             "status": "error",
             "message": str(e)
