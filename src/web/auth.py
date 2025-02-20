@@ -3,6 +3,7 @@ Authentication routes for AI Accountability Bot
 """
 import os
 import logging
+import requests
 from urllib.parse import urljoin
 from flask import Blueprint, redirect, session, url_for, jsonify, request, current_app
 from requests_oauthlib import OAuth2Session
@@ -29,7 +30,6 @@ def get_github_oauth():
     if not redirect_uri:
         # Fallback to constructing the redirect URI
         redirect_uri = url_for('auth.github_callback', _external=True)
-        logger.info(f"Using constructed redirect URI: {redirect_uri}")
     
     logger.info(f"Initializing GitHub OAuth with redirect URI: {redirect_uri}")
     return OAuth2Session(
@@ -80,25 +80,53 @@ def github_callback():
                 'message': f'GitHub authentication failed: {error_msg}'
             }), 400
 
-        github = get_github_oauth()
-        
-        # Get the full URL including scheme and host
-        full_url = request.url
-        if request.headers.get('X-Forwarded-Proto') == 'https':
-            full_url = full_url.replace('http://', 'https://')
-        
-        logger.info(f"Processing OAuth callback with URL: {full_url}")
-        
-        token = github.fetch_token(
+        code = request.args.get('code')
+        if not code:
+            logger.error("No code in GitHub callback")
+            return jsonify({
+                'status': 'error',
+                'message': 'No authorization code received from GitHub'
+            }), 400
+
+        # Exchange code for token directly using requests
+        response = requests.post(
             GITHUB_TOKEN_URL,
-            client_secret=GITHUB_CLIENT_SECRET,
-            authorization_response=full_url
+            headers={
+                'Accept': 'application/json'
+            },
+            data={
+                'client_id': GITHUB_CLIENT_ID,
+                'client_secret': GITHUB_CLIENT_SECRET,
+                'code': code,
+                'redirect_uri': os.getenv('GITHUB_REDIRECT_URI') or url_for('auth.github_callback', _external=True)
+            }
         )
+
+        if response.status_code != 200:
+            logger.error(f"GitHub token exchange failed: {response.text}")
+            return jsonify({
+                'status': 'error',
+                'message': 'Failed to exchange GitHub code for token'
+            }), 500
+
+        token_data = response.json()
+        if 'error' in token_data:
+            logger.error(f"GitHub token error: {token_data.get('error_description', token_data['error'])}")
+            return jsonify({
+                'status': 'error',
+                'message': f"GitHub token error: {token_data.get('error_description', token_data['error'])}"
+            }), 400
+
+        # Store the token
+        session['github_token'] = {
+            'access_token': token_data['access_token'],
+            'token_type': token_data.get('token_type', 'bearer'),
+            'scope': token_data.get('scope', '').split(',')
+        }
         
-        session['github_token'] = token
         logger.info("Successfully obtained GitHub token")
-        
         return redirect(url_for('home', _external=True))
+        
     except Exception as e:
         logger.error(f"Error in GitHub callback: {str(e)}")
         return jsonify({
