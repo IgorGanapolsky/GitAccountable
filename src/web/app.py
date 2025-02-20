@@ -22,9 +22,16 @@ app = Flask(__name__)
 try:
     # Initialize services
     logger.info("Initializing services...")
+    
+    # Get OpenAI API key
+    openai_api_key = os.getenv('OPENAI_API_KEY')
+    if not openai_api_key:
+        raise ValueError("OPENAI_API_KEY not found in environment variables")
+    
+    # Initialize services
     airtable_manager = AirtableManager()
     task_manager = TaskManager(airtable_manager)
-    chat_service = ChatService()
+    chat_service = ChatService(api_key=openai_api_key)
     bot = AIAccountabilityBot(task_manager, chat_service)
     logger.info("Services initialized successfully")
 except Exception as e:
