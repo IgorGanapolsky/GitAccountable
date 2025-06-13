@@ -45,7 +45,7 @@ is_production = os.getenv('FLASK_ENV', 'development') == 'production'
 logger.info(f"Running in {'production' if is_production else 'development'} mode")
 
 app.config.update(
-    SESSION_COOKIE_SECURE=is_production,  # Only force HTTPS in production
+    SESSION_COOKIE_SECURE=True,  # Only force HTTPS in production
     SESSION_COOKIE_HTTPONLY=True,  # Prevent JavaScript access to session cookie
     SESSION_COOKIE_SAMESITE='Lax',  # CSRF protection
     PREFERRED_URL_SCHEME='https' if is_production else 'http'
